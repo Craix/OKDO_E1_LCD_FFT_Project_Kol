@@ -15,12 +15,12 @@
 #define N2FFT (2*NFFT)
 
 float x[N2FFT]={0};
+q31_t y[N2FFT]={0};
 float f=0;
 
 void drawPlot(float *data, uint16_t size, uint16_t color)
 {
 	static float y=0, y1=0;
-
 	y=64-63*(data[0]);
 
 	for(int x=0; x<size-1; x++)
@@ -63,14 +63,15 @@ int main(void)
 	BOARD_InitBootPins();
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
+
 	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	/* Init FSL debug console. */
 	BOARD_InitDebugConsole();
 	#endif
 
 	LCD_Init(FLEXCOMM8_PERIPHERAL);
-	f=1;
 
+	f=1;
 	while(1)
 	{
 		for(int i=0;i<NFFT;i++)
@@ -86,13 +87,14 @@ int main(void)
 
 		LCD_Clear(0x0000);
 		drawPlot(x, 160, 0x0FF0);
-
-		arm_cfft_f32(&arm_cfft_sR_f32_len512, x, 0, 1);
-		arm_cmplx_mag_f32(x, x, NFFT);
-		arm_scale_f32 (x, 1/256.0, x, NFFT);
+		arm_float_to_q31(x, y, N2FFT);
+		arm_cfft_q31(&arm_cfft_sR_q31_len512, y, 0, 1);
+		arm_cmplx_mag_q31(y, y, NFFT);
+		arm_scale_q31 (y, 0x7FFFFFFF, 2, y, NFFT);
+		arm_q31_to_float(y, x, N2FFT);
 		drawBars(x, 160, 0xF800);
-
 		LCD_GramRefresh();
-}
-return 0 ;
+	}
+
+	return 0 ;
 }
