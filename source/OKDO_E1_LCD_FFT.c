@@ -10,6 +10,7 @@
 #include "lcd.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
+#include "fsl_powerquad.h"
 
 #define NFFT 512
 #define N2FFT (2*NFFT)
@@ -41,6 +42,7 @@ void drawPlot(float *data, uint16_t size, uint16_t color)
 void drawBars(float *data, uint16_t size, uint16_t color)
 {
 	static float y=0;
+
 	for(int x=0; x<size; x++)
 	{
 		y=127-127*(data[x]);
@@ -63,11 +65,25 @@ int main(void)
 	BOARD_InitBootPins();
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
-
 	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	/* Init FSL debug console. */
 	BOARD_InitDebugConsole();
 	#endif
+
+	PQ_Init(POWERQUAD);
+
+	pq_config_t pq_cfg;
+	pq_cfg.inputAFormat = kPQ_32Bit;
+	pq_cfg.inputAPrescale = 0;
+	pq_cfg.inputBFormat = kPQ_32Bit;
+	pq_cfg.inputBPrescale = 0;
+	pq_cfg.tmpFormat = kPQ_32Bit;
+	pq_cfg.tmpPrescale = 0;
+	pq_cfg.outputFormat = kPQ_32Bit;
+	pq_cfg.outputPrescale = 0;
+	pq_cfg.tmpBase = (uint32_t *)0xE0000000;
+	pq_cfg.machineFormat = kPQ_32Bit;
+	PQ_SetConfig(POWERQUAD, &pq_cfg);
 
 	LCD_Init(FLEXCOMM8_PERIPHERAL);
 
@@ -87,11 +103,17 @@ int main(void)
 
 		LCD_Clear(0x0000);
 		drawPlot(x, 160, 0x0FF0);
+
 		arm_float_to_q31(x, y, N2FFT);
-		arm_cfft_q31(&arm_cfft_sR_q31_len512, y, 0, 1);
+		arm_scale_q31 (y, 0x03FFFFFF, 0, y, N2FFT); // max: 27 bit
+
+		PQ_TransformCFFT(POWERQUAD, NFFT, y, y);
+		PQ_WaitDone(POWERQUAD);
+
 		arm_cmplx_mag_q31(y, y, NFFT);
-		arm_scale_q31 (y, 0x7FFFFFFF, 2, y, NFFT);
+		arm_scale_q31 (y, 0x7FFFFFFF, 7, y, NFFT);
 		arm_q31_to_float(y, x, N2FFT);
+
 		drawBars(x, 160, 0xF800);
 		LCD_GramRefresh();
 	}
