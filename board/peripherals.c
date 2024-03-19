@@ -71,7 +71,8 @@ instance:
 - peripheral: 'NVIC'
 - config_sets:
   - nvic:
-    - interrupt_table: []
+    - interrupt_table:
+      - 0: []
     - interrupts: []
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
@@ -143,12 +144,204 @@ static void FLEXCOMM8_init(void) {
 }
 
 /***********************************************************************************************************************
+ * CTIMER0 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'CTIMER0'
+- type: 'ctimer'
+- mode: 'Capture_Match'
+- custom_name_enabled: 'false'
+- type_id: 'ctimer_44573e4bbd77c18d33bceb2e7900a074'
+- functional_group: 'BOARD_InitPeripherals_cm33_core0'
+- peripheral: 'CTIMER0'
+- config_sets:
+  - fsl_ctimer:
+    - ctimerConfig:
+      - mode: 'kCTIMER_TimerMode'
+      - clockSource: 'FunctionClock'
+      - clockSourceFreq: 'BOARD_BootClockFROHF96M'
+      - timerPrescaler: '1'
+    - EnableTimerInInit: 'true'
+    - matchChannels:
+      - 0:
+        - matchChannelPrefixId: 'Match_3'
+        - matchChannel: 'kCTIMER_Match_3'
+        - matchValueStr: '3000'
+        - enableCounterReset: 'true'
+        - enableCounterStop: 'false'
+        - outControl: 'kCTIMER_Output_Toggle'
+        - outPinInitValue: 'low'
+        - enableInterrupt: 'false'
+    - captureChannels: []
+    - interruptCallbackConfig:
+      - interrupt:
+        - IRQn: 'CTIMER0_IRQn'
+        - enable_priority: 'false'
+        - priority: '0'
+      - callback: 'kCTIMER_NoCallback'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const ctimer_config_t CTIMER0_config = {
+  .mode = kCTIMER_TimerMode,
+  .input = kCTIMER_Capture_0,
+  .prescale = 0
+};
+const ctimer_match_config_t CTIMER0_Match_3_config = {
+  .matchValue = 2999,
+  .enableCounterReset = true,
+  .enableCounterStop = false,
+  .outControl = kCTIMER_Output_Toggle,
+  .outPinInitState = false,
+  .enableInterrupt = false
+};
+
+static void CTIMER0_init(void) {
+  /* CTIMER0 peripheral initialization */
+  CTIMER_Init(CTIMER0_PERIPHERAL, &CTIMER0_config);
+  /* Match channel 3 of CTIMER0 peripheral initialization */
+  CTIMER_SetupMatch(CTIMER0_PERIPHERAL, CTIMER0_MATCH_3_CHANNEL, &CTIMER0_Match_3_config);
+  /* Start the timer */
+  CTIMER_StartTimer(CTIMER0_PERIPHERAL);
+}
+
+/***********************************************************************************************************************
+ * ADC0 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'ADC0'
+- type: 'lpadc'
+- mode: 'LPADC'
+- custom_name_enabled: 'false'
+- type_id: 'lpadc_ddcc12878b96237847ab78b571214e1c'
+- functional_group: 'BOARD_InitPeripherals_cm33_core0'
+- peripheral: 'ADC0'
+- config_sets:
+  - fsl_lpadc:
+    - lpadcConfig:
+      - clockSource: 'AsynchronousFunctionClock'
+      - clockSourceFreq: 'BOARD_BootClockFROHF96M'
+      - enableInDozeMode: 'true'
+      - conversionAverageMode: 'kLPADC_ConversionAverage1'
+      - offsetCalibration: 'yes'
+      - autoCalibrate: 'true'
+      - enableAnalogPreliminary: 'true'
+      - powerUpDelay: '0x80'
+      - referenceVoltageSource: 'kLPADC_ReferenceVoltageAlt2'
+      - powerLevelMode: 'kLPADC_PowerLevelAlt4'
+      - triggerPriorityPolicy: 'kLPADC_TriggerPriorityPreemptImmediately'
+      - enableConvPause: 'false'
+      - convPauseDelay: '0'
+      - FIFO0Watermark: '0'
+      - FIFO1Watermark: '0'
+      - FIFO0WatermarkDMA: 'false'
+      - FIFO1WatermarkDMA: 'false'
+    - lpadcConvCommandConfig:
+      - 0:
+        - user_commandId: ''
+        - commandId: '1'
+        - chainedNextCommandNumber: '0'
+        - sampleChannelMode: 'kLPADC_SampleChannelSingleEndSideA'
+        - channelNumber: 'CH.0'
+        - enableAutoChannelIncrement: 'false'
+        - loopCount: '0'
+        - hardwareAverageMode: 'kLPADC_HardwareAverageCount1'
+        - sampleTimeMode: 'kLPADC_SampleTimeADCK3'
+        - hardwareCompareMode: 'kLPADC_HardwareCompareDisabled'
+        - hardwareCompareValueHigh: '0'
+        - hardwareCompareValueLow: '0'
+        - conversionResoultuionMode: 'kLPADC_ConversionResolutionHigh'
+        - enableWaitTrigger: 'false'
+    - lpadcConvTriggerConfig:
+      - 0:
+        - user_triggerId: ''
+        - triggerId: '5'
+        - targetCommandId: '1'
+        - delayPower: '0'
+        - priority: 'false'
+        - channelAFIFOSelect: '0'
+        - channelBFIFOSelect: '0'
+        - enableHardwareTrigger: 'true'
+    - IRQ_cfg:
+      - interrupt_type: 'kLPADC_FIFO0WatermarkInterruptEnable'
+      - enable_irq: 'true'
+      - adc_interrupt:
+        - IRQn: 'ADC0_IRQn'
+        - enable_interrrupt: 'enabled'
+        - enable_priority: 'false'
+        - priority: '0'
+        - enable_custom_name: 'false'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const lpadc_config_t ADC0_config = {
+  .enableInDozeMode = true,
+  .conversionAverageMode = kLPADC_ConversionAverage1,
+  .enableAnalogPreliminary = true,
+  .powerUpDelay = 0x80UL,
+  .referenceVoltageSource = kLPADC_ReferenceVoltageAlt2,
+  .powerLevelMode = kLPADC_PowerLevelAlt4,
+  .triggerPriorityPolicy = kLPADC_TriggerPriorityPreemptImmediately,
+  .enableConvPause = false,
+  .convPauseDelay = 0UL,
+  .FIFO0Watermark = 0UL,
+  .FIFO1Watermark = 0UL
+};
+lpadc_conv_command_config_t ADC0_commandsConfig[1] = {
+  {
+    .sampleChannelMode = kLPADC_SampleChannelSingleEndSideA,
+    .channelNumber = 0U,
+    .chainedNextCommandNumber = 0,
+    .enableAutoChannelIncrement = false,
+    .loopCount = 0UL,
+    .hardwareAverageMode = kLPADC_HardwareAverageCount1,
+    .sampleTimeMode = kLPADC_SampleTimeADCK3,
+    .hardwareCompareMode = kLPADC_HardwareCompareDisabled,
+    .hardwareCompareValueHigh = 0UL,
+    .hardwareCompareValueLow = 0UL,
+    .conversionResolutionMode = kLPADC_ConversionResolutionHigh,
+    .enableWaitTrigger = false
+  }
+};
+lpadc_conv_trigger_config_t ADC0_triggersConfig[1] = {
+  {
+    .targetCommandId = 1,
+    .delayPower = 0UL,
+    .channelAFIFOSelect = 0,
+    .channelBFIFOSelect = 0,
+    .priority = 1,
+    .enableHardwareTrigger = true
+  }
+};
+
+static void ADC0_init(void) {
+  /* Initialize LPADC converter */
+  LPADC_Init(ADC0_PERIPHERAL, &ADC0_config);
+  /* Perform offset calibration */
+  LPADC_DoOffsetCalibration(ADC0_PERIPHERAL);
+  /* Perform auto calibration */
+  LPADC_DoAutoCalibration(ADC0_PERIPHERAL);
+  /* Configure conversion command 1. */
+  LPADC_SetConvCommandConfig(ADC0_PERIPHERAL, 1, &ADC0_commandsConfig[0]);
+  /* Configure trigger 5. */
+  LPADC_SetConvTriggerConfig(ADC0_PERIPHERAL, 5, &ADC0_triggersConfig[0]);
+  /* Enable interrupts from LPADC */
+  LPADC_EnableInterrupts(ADC0_PERIPHERAL, (kLPADC_FIFO0WatermarkInterruptEnable));
+  /* Enable interrupt ADC0_IRQn request in the NVIC. */
+  EnableIRQ(ADC0_IRQN);
+}
+
+/***********************************************************************************************************************
  * Initialization functions
  **********************************************************************************************************************/
 void BOARD_InitPeripherals_cm33_core0(void)
 {
   /* Initialize components */
   FLEXCOMM8_init();
+  CTIMER0_init();
+  ADC0_init();
 }
 
 /***********************************************************************************************************************

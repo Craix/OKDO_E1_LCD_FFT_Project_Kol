@@ -11,6 +11,9 @@
  **********************************************************************************************************************/
 #include "fsl_common.h"
 #include "fsl_spi.h"
+#include "fsl_ctimer.h"
+#include "fsl_clock.h"
+#include "fsl_lpadc.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -25,11 +28,32 @@ extern "C" {
 #define FLEXCOMM8_PERIPHERAL ((SPI_Type *)FLEXCOMM8)
 /* Definition of the clock source frequency */
 #define FLEXCOMM8_CLOCK_SOURCE 32000000UL
+/* Definition of peripheral ID */
+#define CTIMER0_PERIPHERAL CTIMER0
+/* Timer tick frequency in Hz (input frequency of the timer) */
+#define CTIMER0_TICK_FREQ 96000000UL
+/* Timer tick period in ns (input period of the timer) */
+#define CTIMER0_TICK_PERIOD 10UL
+/* Definition of PWM period channel. */
+#define CTIMER0_PWM_PERIOD_CH kCTIMER_Match_0
+/* Definition of channel 3 ID */
+#define CTIMER0_MATCH_3_CHANNEL kCTIMER_Match_3
+/* Alias for ADC0 peripheral */
+#define ADC0_PERIPHERAL ADC0
+/* ADC0 interrupt vector ID (number). */
+#define ADC0_IRQN ADC0_IRQn
+/* ADC0 interrupt handler identifier. */
+#define ADC0_IRQHANDLER ADC0_IRQHandler
 
 /***********************************************************************************************************************
  * Global variables
  **********************************************************************************************************************/
 extern const spi_master_config_t FLEXCOMM8_config;
+extern const ctimer_config_t CTIMER0_config;
+extern const ctimer_match_config_t CTIMER0_Match_3_config;
+extern const lpadc_config_t ADC0_config;
+extern lpadc_conv_command_config_t ADC0_commandsConfig[1];
+extern lpadc_conv_trigger_config_t ADC0_triggersConfig[1];
 
 /***********************************************************************************************************************
  * Initialization functions

@@ -11,13 +11,37 @@
 #include "arm_math.h"
 #include "arm_const_structs.h"
 #include "fsl_powerquad.h"
+#include "fsl_power.h"
 
 #define NFFT 512
 #define N2FFT (2*NFFT)
 
 float x[N2FFT]={0};
 q31_t y[N2FFT]={0};
-float f=0;
+
+uint16_t dataBuffer[NFFT]={0};
+uint32_t wr=0;
+
+bool dataReady = false;
+lpadc_conv_result_t g_LpadcResultConfigStruct;
+
+/* ADC0_IRQn interrupt handler */
+void ADC0_IRQHANDLER(void)
+{
+	// 0-65535 -> -32768-+32767
+	LPADC_GetConvResult(ADC0, &g_LpadcResultConfigStruct, 0U);
+
+	if(!dataReady)
+	{
+		dataBuffer[wr++]=g_LpadcResultConfigStruct.convValue;
+	}
+
+	if(wr>=NFFT)
+	{
+		wr=0;
+		dataReady=true;
+	}
+}
 
 void drawPlot(float *data, uint16_t size, uint16_t color)
 {
@@ -42,7 +66,6 @@ void drawPlot(float *data, uint16_t size, uint16_t color)
 void drawBars(float *data, uint16_t size, uint16_t color)
 {
 	static float y=0;
-
 	for(int x=0; x<size; x++)
 	{
 		y=127-127*(data[x]);
@@ -56,15 +79,21 @@ void drawBars(float *data, uint16_t size, uint16_t color)
 		LCD_Draw_Line(x, 127, x, y, color);
 	}
 }
+
 /*
  * @brief Application entry point.
  */
+
 int main(void)
 {
+	/* Disable LDOGPADC power down */
+	POWER_DisablePD(kPDRUNCFG_PD_LDOGPADC);
+
 	/* Init board hardware. */
 	BOARD_InitBootPins();
 	BOARD_InitBootClocks();
 	BOARD_InitBootPeripherals();
+
 	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
 	/* Init FSL debug console. */
 	BOARD_InitDebugConsole();
@@ -83,39 +112,39 @@ int main(void)
 	pq_cfg.outputPrescale = 0;
 	pq_cfg.tmpBase = (uint32_t *)0xE0000000;
 	pq_cfg.machineFormat = kPQ_32Bit;
+
 	PQ_SetConfig(POWERQUAD, &pq_cfg);
 
 	LCD_Init(FLEXCOMM8_PERIPHERAL);
 
-	f=1;
 	while(1)
 	{
-		for(int i=0;i<NFFT;i++)
+		if(dataReady)
 		{
-			x[2*i] = arm_sin_f32(2*PI*i*f/NFFT);
-			x[2*i+1] = 0;
+			for(int i=0;i<NFFT;i++)
+			{
+				x[2*i] = (dataBuffer[i]/32768.0)-1; // uint16 to float
+				x[2*i+1] = 0;
+			}
+
+			dataReady=false;
+
+			LCD_Clear(0x0000);
+			drawPlot(x, 160, 0x0FF0);
+
+			arm_float_to_q31(x, y, N2FFT);
+			arm_scale_q31 (y, 0x03FFFFFF, 0, y, N2FFT); // max: 27 bit
+
+			PQ_TransformCFFT(POWERQUAD, NFFT, y, y);
+			PQ_WaitDone(POWERQUAD);
+
+			arm_cmplx_mag_q31(y, y, NFFT);
+			arm_scale_q31 (y, 0x7FFFFFFF, 7, y, NFFT);
+			arm_q31_to_float(y, x, NFFT);
+
+			drawBars(x, 160, 0xF800);
+			LCD_GramRefresh();
 		}
-
-		f+=0.02;
-
-		if(f>=160)
-			f=1;
-
-		LCD_Clear(0x0000);
-		drawPlot(x, 160, 0x0FF0);
-
-		arm_float_to_q31(x, y, N2FFT);
-		arm_scale_q31 (y, 0x03FFFFFF, 0, y, N2FFT); // max: 27 bit
-
-		PQ_TransformCFFT(POWERQUAD, NFFT, y, y);
-		PQ_WaitDone(POWERQUAD);
-
-		arm_cmplx_mag_q31(y, y, NFFT);
-		arm_scale_q31 (y, 0x7FFFFFFF, 7, y, NFFT);
-		arm_q31_to_float(y, x, N2FFT);
-
-		drawBars(x, 160, 0xF800);
-		LCD_GramRefresh();
 	}
 
 	return 0 ;
